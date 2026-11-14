@@ -9,9 +9,9 @@ pub struct Tree {
 
 impl Tree {
     /// Converts a Prüfer sequence to a tree
-    /// 
+    ///
     /// See https://en.wikipedia.org/wiki/Pr%C3%BCfer_sequence
-    /// 
+    ///
     /// The sequence contains N - 2 numbers, each between 0 and N - 1
     fn from_prufer(prufer: &[u8]) -> Self {
         // The degree of each vertex is the number of times it appears in the sequence plus one
@@ -57,7 +57,7 @@ impl Tree {
 }
 
 /// Gives the next Prüfer sequence
-/// 
+///
 /// If we consider the sequence as the digits of a number in base `N`, this function just increments the number
 fn next_prufer(prufer: &mut [u8]) {
     let n_max = N as u8 - 1;
@@ -76,6 +76,8 @@ mod tests {
     use super::*;
 
     impl Tree {
+        // Very inefficient way to check if a graph is connected,
+        // but it is only for the tests, so no need to build adjacency lists
         fn is_connected(&self) -> bool {
             let mut visited = [false; N];
             visited[0] = true;
