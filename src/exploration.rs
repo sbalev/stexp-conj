@@ -107,6 +107,7 @@ mod tests {
     fn star() -> Tree {
         Tree {
             edges: std::array::from_fn(|i| (0, (i + 1) as u8)),
+            id: 0,
         }
     }
 
@@ -114,6 +115,7 @@ mod tests {
     fn path() -> Tree {
         Tree {
             edges: std::array::from_fn(|i| (i as u8, (i + 1) as u8)),
+            id: 0,
         }
     }
 

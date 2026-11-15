@@ -2,36 +2,43 @@ use std::cmp::{max, min};
 
 use crate::constants::N;
 
+const TREE_COUNT: usize = N.pow(N as u32 - 2); // Cayley's formula
+
 /// A tree is just a list of `N - 1` edges
 pub struct Tree {
     pub edges: [(u8, u8); N - 1],
+    pub id: usize,
 }
 
 impl Tree {
-    /// Converts a Prüfer sequence to a tree
-    ///
+    /// Converts an id in 0..TREE_COUNT into a tree.
+    /// The id (in base N) is interpreted as the Prüfer sequence of the tree.
     /// See https://en.wikipedia.org/wiki/Pr%C3%BCfer_sequence
-    ///
-    /// The sequence contains N - 2 numbers, each between 0 and N - 1
-    fn from_prufer(prufer: &[u8]) -> Self {
-        // The degree of each vertex is the number of times it appears in the sequence plus one
-        let mut degrees = [1u8; N];
-        for v in prufer {
-            degrees[*v as usize] += 1;
-        }
-
+    pub fn from_id(id: usize) -> Self {
+        let id = id % TREE_COUNT; // make sure that the id is in 0..TREE_COUNT
         let mut tree = Self {
             edges: [(0, 0); N - 1],
+            id: id,
         };
 
+        let mut degrees = [1u8; N];
+        let mut prufer = id;
+        for _ in 0..N - 2 {
+            degrees[prufer % N] += 1;
+            prufer /= N;
+        }
+
         let mut j = 0;
-        for u in prufer {
+        prufer = id;
+        for _ in 0..N - 2 {
+            let u = prufer % N;
+            prufer /= N;
             // find the first leaf
             let v = degrees.iter().position(|&d| d == 1).unwrap();
             // add the edge (u, v) to the tree and decrement the degrees of u and v
-            tree.edges[j] = (min(*u, v as u8), max(*u, v as u8));
+            tree.edges[j] = (min(u as u8, v as u8), max(u as u8, v as u8));
             j += 1;
-            degrees[*u as usize] -= 1;
+            degrees[u] -= 1;
             degrees[v] -= 1;
         }
         // At the end there are two vertices with degree 1. Connect them with edge.
@@ -44,30 +51,13 @@ impl Tree {
 
     /// Generates all labeled trees of N vertices
     pub fn all_trees() -> Vec<Self> {
-        let tree_count = N.pow(N as u32 - 2); // Cayley's formula
-        let mut trees = Vec::with_capacity(tree_count);
+        //let tree_count = N.pow(N as u32 - 2); // Cayley's formula
+        let mut trees = Vec::with_capacity(TREE_COUNT);
         // Each Prüfer sequence gives a tree
-        let prufer = &mut [0; N - 2];
-        for _ in 0..tree_count {
-            trees.push(Self::from_prufer(prufer));
-            next_prufer(prufer);
+        for id in 0..TREE_COUNT {
+            trees.push(Self::from_id(id));
         }
         trees
-    }
-}
-
-/// Gives the next Prüfer sequence
-///
-/// If we consider the sequence as the digits of a number in base `N`, this function just increments the number
-fn next_prufer(prufer: &mut [u8]) {
-    let n_max = N as u8 - 1;
-    for p in prufer {
-        if *p < n_max {
-            *p += 1;
-            return;
-        } else {
-            *p = 0;
-        }
     }
 }
 
@@ -105,7 +95,7 @@ mod tests {
     // Don't run this for N > 7, it takes too much time
     fn test_trees() {
         let mut all = Tree::all_trees();
-        assert_eq!(all.len(), N.pow(N as u32 - 2));
+        assert_eq!(all.len(), TREE_COUNT);
 
         for tree in &all {
             assert!(tree.is_connected())
