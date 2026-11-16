@@ -18,7 +18,7 @@ impl Tree {
         let id = id % TREE_COUNT; // make sure that the id is in 0..TREE_COUNT
         let mut tree = Self {
             edges: [(0, 0); N - 1],
-            id: id,
+            id,
         };
 
         let mut degrees = [1u8; N];

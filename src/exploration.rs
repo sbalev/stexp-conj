@@ -24,9 +24,8 @@ impl Exploration {
 
     fn transition_from_0(&self, next: &mut Self, v: usize) {
         let start_v = (v + 1) * S;
-        for s in 0..(S << 1) {
-            let cur = self.hops[s];
-            if cur < INF {
+        for (s, cur) in self.hops.iter().enumerate().take(S << 1) {
+            if *cur < INF {
                 let s_v = delete_bit(s, v - 1);
                 next.hops[start_v + s_v] = next.hops[start_v + s_v].min(cur + 1);
             }
@@ -34,10 +33,8 @@ impl Exploration {
     }
 
     fn transition_to_0(&self, next: &mut Self, u: usize) {
-        let start_u = (u + 1) * S;
-        for s in 0..S {
-            let cur = self.hops[start_u + s];
-            if cur < INF {
+        for (s, cur) in self.hops[(u + 1) * S..].iter().enumerate().take(S) {
+            if *cur < INF {
                 let s_0 = insert_one(s, u - 1);
                 next.hops[s_0] = next.hops[s_0].min(cur + 1);
             }
@@ -45,11 +42,9 @@ impl Exploration {
     }
 
     fn transition(&self, next: &mut Self, u: usize, v: usize) {
-        let start_u = (u + 1) * S;
         let start_v = (v + 1) * S;
-        for s in 0..S {
-            let cur = self.hops[start_u + s];
-            if cur < INF {
+        for (s, cur) in self.hops[(u + 1) * S..].iter().enumerate().take(S) {
+            if *cur < INF {
                 let s_v = delete_bit(insert_one(s, u - 1), v - 1);
                 next.hops[start_v + s_v] = next.hops[start_v + s_v].min(cur + 1);
             }
@@ -80,6 +75,12 @@ impl Exploration {
             min_hops = min_hops.min(self.hops[(2 + v) * S - 1]);
         }
         min_hops
+    }
+}
+
+impl Default for Exploration {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

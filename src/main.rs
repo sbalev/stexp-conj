@@ -2,7 +2,7 @@ use rand::RngExt;
 use stexp_conj::{constants::N, exploration::Exploration, tree::Tree};
 
 fn main() {
-    explore_random_graphs(100_000_000);
+    explore_random_graphs(1_000_000);
 }
 
 fn explore_random_graphs(graph_count: u64) {
@@ -19,14 +19,14 @@ fn explore_random_graphs(graph_count: u64) {
         snapshots.clear();
         let mut exp = Exploration::new();
         let mut found = false;
-        for step in 1..N * (N - 1) / 2 + 1 {
+        for (step, stats_line) in stats.iter_mut().enumerate().skip(1) {
             let t = rng.random_range(0..trees.len());
             snapshots.push(trees[t].id);
             exp = exp.next(&trees[t]);
             if step >= N - 1 {
                 let hops = exp.hops_to_explore();
                 if hops <= (2 * N - 3) as u8 {
-                    stats[step][hops as usize] += 1;
+                    stats_line[hops as usize] += 1;
                     found = true;
                     break;
                 }
@@ -40,7 +40,7 @@ fn explore_random_graphs(graph_count: u64) {
             println!("{i} graphs tested");
         }
     }
-    for step in N - 1..MAX_STEPS + 1 {
-        println!("{step} steps : {:?}", &stats[step][N - 1..]);
+    for (step, stat_line) in stats.iter().enumerate().skip(N - 1) {
+        println!("{step} steps : {:?}", &stat_line[N - 1..]);
     }
 }
