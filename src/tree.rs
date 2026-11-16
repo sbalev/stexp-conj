@@ -51,7 +51,6 @@ impl Tree {
 
     /// Generates all labeled trees of N vertices
     pub fn all_trees() -> Vec<Self> {
-        //let tree_count = N.pow(N as u32 - 2); // Cayley's formula
         let mut trees = Vec::with_capacity(TREE_COUNT);
         // Each Prüfer sequence gives a tree
         for id in 0..TREE_COUNT {

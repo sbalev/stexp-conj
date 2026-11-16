@@ -73,6 +73,14 @@ impl Exploration {
         }
         next
     }
+
+    pub fn hops_to_explore(&self) -> u8 {
+        let mut min_hops = INF;
+        for v in 1..N {
+            min_hops = min_hops.min(self.hops[(2 + v) * S - 1]);
+        }
+        min_hops
+    }
 }
 
 /// Deletes the bit at the specified position. Keeps the less significant bits
@@ -187,6 +195,19 @@ mod tests {
         for v in 1..N {
             assert_eq!(exp.hops[index(0, 1 << (v - 1))], 2);
         }
+    }
+
+    #[test]
+    // Exploring a static star
+    fn test_star_exploration() {
+        let star = star();
+        let mut exp = Exploration::new();
+        for _ in 0..2 * N - 4 {
+            exp = exp.next(&star);
+            assert_eq!(exp.hops_to_explore(), INF);
+        }
+        exp = exp.next(&star);
+        assert_eq!(exp.hops_to_explore(), (2 * N - 3) as u8);
     }
 
     #[test]
