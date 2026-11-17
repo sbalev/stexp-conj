@@ -3,6 +3,8 @@ use crate::{
     tree::Tree,
 };
 
+const STATES: usize = (N + 1) << (N - 2);
+
 #[derive(Clone)]
 pub struct Exploration {
     /// Minimal number of hops for each configuration (current vertex, visited set).
@@ -10,20 +12,20 @@ pub struct Exploration {
     /// (vertex 0 is always visited and has no bit).
     /// Slots 0..2S: agent in 0, slot = full mask.
     /// Slots (v+1)*S .. (v+2)*S for v >= 1: agent in v, slot = mask without the bit of v.
-    pub hops: [u8; S * (N + 1)],
+    pub hops: [u8; STATES],
 }
 
 impl Exploration {
     pub fn new() -> Self {
         let mut exp = Self {
-            hops: [INF; S * (N + 1)],
+            hops: [INF; STATES],
         };
         exp.hops[0] = 0;
         exp
     }
 
     fn transition_from_0(&self, next: &mut Self, v: usize) {
-        let start_v = (v + 1) * S;
+        let start_v = (v + 1) << (N - 2);
         for (s, cur) in self.hops.iter().enumerate().take(S << 1) {
             if *cur < INF {
                 let s_v = delete_bit(s, v - 1);
@@ -33,7 +35,7 @@ impl Exploration {
     }
 
     fn transition_to_0(&self, next: &mut Self, u: usize) {
-        for (s, cur) in self.hops[(u + 1) * S..].iter().enumerate().take(S) {
+        for (s, cur) in self.hops[(u + 1) << (N - 2)..].iter().enumerate().take(S) {
             if *cur < INF {
                 let s_0 = insert_one(s, u - 1);
                 next.hops[s_0] = next.hops[s_0].min(cur + 1);
@@ -42,8 +44,8 @@ impl Exploration {
     }
 
     fn transition(&self, next: &mut Self, u: usize, v: usize) {
-        let start_v = (v + 1) * S;
-        for (s, cur) in self.hops[(u + 1) * S..].iter().enumerate().take(S) {
+        let start_v = (v + 1) << (N - 2);
+        for (s, cur) in self.hops[(u + 1) << (N - 2)..].iter().enumerate().take(S) {
             if *cur < INF {
                 let s_v = delete_bit(insert_one(s, u - 1), v - 1);
                 next.hops[start_v + s_v] = next.hops[start_v + s_v].min(cur + 1);
@@ -70,11 +72,7 @@ impl Exploration {
     }
 
     pub fn hops_to_explore(&self) -> u8 {
-        let mut min_hops = INF;
-        for v in 1..N {
-            min_hops = min_hops.min(self.hops[(2 + v) * S - 1]);
-        }
-        min_hops
+         *(self.hops[3 * S - 1..].iter().step_by(S).min().unwrap())
     }
 }
 

@@ -34,7 +34,7 @@ fn explore_random_graphs(graph_count: u64) {
         }
         if !found {
             println!("Counterexample {snapshots:?}");
-            panic!("The conjecture is wrong!!!");
+            panic!("The Conjecture is wrong!!!");
         }
         if i % 100_000 == 0 {
             println!("{i} graphs tested");
