@@ -1,9 +1,10 @@
 use crate::{
-    constants::{INF, N, S},
+    constants::{INF, N},
     tree::Tree,
 };
 
-const STATES: usize = (N + 1) << (N - 2);
+pub const S: usize = 1 << (N - 2); // Number of subsets of `0..N` with two fixed elements
+const STATES: usize = (N + 1) << (N - 2); // number of elements in DP table (N + 1) * 2^(N - 2)
 
 #[derive(Clone)]
 pub struct Exploration {
