@@ -1,6 +1,5 @@
 use crate::{
-    constants::{INF, N},
-    tree::Tree,
+    constants::{INF, N}, tree::Tree,
 };
 
 pub const S: usize = 1 << (N - 2); // Number of subsets of `0..N` with two fixed elements
@@ -25,40 +24,42 @@ impl Exploration {
         exp
     }
 
+    // u = 0 and v != 0
     fn transition_from_0(&self, next: &mut Self, v: usize) {
         let start_v = (v + 1) << (N - 2);
-        for (s, cur) in self.hops.iter().enumerate().take(S << 1) {
-            if *cur < INF {
+        for (s, &cur) in self.hops.iter().enumerate().take(S << 1) {
+            if cur < INF {
                 let s_v = delete_bit(s, v - 1);
                 next.hops[start_v + s_v] = next.hops[start_v + s_v].min(cur + 1);
             }
         }
     }
 
+    // u != 0 and v = 0
     fn transition_to_0(&self, next: &mut Self, u: usize) {
-        for (s, cur) in self.hops[(u + 1) << (N - 2)..].iter().enumerate().take(S) {
-            if *cur < INF {
+        for (s, &cur) in self.hops[(u + 1) << (N - 2)..].iter().enumerate().take(S) {
+            if cur < INF {
                 let s_0 = insert_one(s, u - 1);
                 next.hops[s_0] = next.hops[s_0].min(cur + 1);
             }
         }
     }
 
+    // u!=0 and v != 0
     fn transition(&self, next: &mut Self, u: usize, v: usize) {
         let start_v = (v + 1) << (N - 2);
-        for (s, cur) in self.hops[(u + 1) << (N - 2)..].iter().enumerate().take(S) {
-            if *cur < INF {
+        for (s, &cur) in self.hops[(u + 1) << (N - 2)..].iter().enumerate().take(S) {
+            if cur < INF {
                 let s_v = delete_bit(insert_one(s, u - 1), v - 1);
                 next.hops[start_v + s_v] = next.hops[start_v + s_v].min(cur + 1);
             }
         }
     }
 
-    /// Returns the next configuration after a time step with a given snapshot
-    pub fn next(&self, snapshot: &Tree) -> Self {
+    pub fn next_with_edges(&self, edges: &[(u8, u8)]) -> Self {
         let mut next = self.clone();
-        for (a, b) in snapshot.edges {
-            let (a, b) = (a as usize, b as usize);
+        for (a, b) in edges {
+            let (a, b) = (*a as usize, *b as usize);
             for (u, v) in [(a, b), (b, a)] {
                 if u == 0 {
                     self.transition_from_0(&mut next, v);
@@ -72,8 +73,14 @@ impl Exploration {
         next
     }
 
+    /// Returns the next configuration after a time step with a given snapshot
+    pub fn next(&self, snapshot: &Tree) -> Self {
+        self.next_with_edges(&snapshot.edges)
+    }
+
+    /// Returns the minimal number of hops to explore all vertices (INF if not yet explored)
     pub fn hops_to_explore(&self) -> u8 {
-         *(self.hops[3 * S - 1..].iter().step_by(S).min().unwrap())
+        *(self.hops[3 * S - 1..].iter().step_by(S).min().unwrap())
     }
 }
 
@@ -213,10 +220,14 @@ mod tests {
     #[test]
     /// Walking along a path visits all vertices in N - 1 hops
     fn test_path() {
+        let path = path();
         let mut exp = Exploration::new();
-        for _ in 0..N - 1 {
-            exp = exp.next(&path());
+        for _ in 0..N - 2 {
+            exp = exp.next(&path);
+            assert_eq!(exp.hops_to_explore(), INF);
         }
+        exp = exp.next(&path);
+        assert_eq!(exp.hops_to_explore(), (N - 1) as u8);
         let all = (S << 1) - 1;
         assert_eq!(exp.hops[index(N - 1, all)], (N - 1) as u8);
     }
