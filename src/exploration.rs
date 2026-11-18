@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::{
     constants::{INF, N},
     tree::Tree,
@@ -6,7 +8,7 @@ use crate::{
 pub const S: usize = 1 << (N - 2); // Number of subsets of `0..N` with two fixed elements
 const STATES: usize = (N + 1) << (N - 2); // number of elements in DP table (N + 1) * 2^(N - 2)
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Exploration {
     /// Minimal number of hops for each configuration (current vertex, visited set).
     /// The visited set is a mask over vertices 1..N-1, vertex v coded by bit v-1
@@ -88,6 +90,29 @@ impl Exploration {
 impl Default for Exploration {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl PartialOrd for Exploration {
+    /// Componentwise order on hop counts: `a >= b` iff `a` dominates `b`
+    /// (a needs at least as many hops as b in every configuration).
+    #[inline]
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let mut le = true; // self <= other everywhere
+        let mut ge = true; // self >= other everywhere
+        for (&a, &b) in self.hops.iter().zip(other.hops.iter()) {
+            le &= a <= b;
+            ge &= a >= b;
+            if !le && !ge {
+                return None; // early exit: incomparable
+            }
+        }
+        match (le, ge) {
+            (true, true) => Some(Ordering::Equal),
+            (true, false) => Some(Ordering::Less),
+            (false, true) => Some(Ordering::Greater),
+            (false, false) => unreachable!(),
+        }
     }
 }
 
@@ -233,5 +258,38 @@ mod tests {
         assert_eq!(exp.hops_to_explore(), (N - 1) as u8);
         let all = (S << 1) - 1;
         assert_eq!(exp.hops[index(N - 1, all)], (N - 1) as u8);
+    }
+
+    #[test]
+    /// Componentwise order on hand-built tables: equal, strict domination in both
+    /// directions, and incomparable (with the differences at the first and last slots)
+    fn test_partial_cmp() {
+        let a = Exploration::new();
+        let mut b = Exploration::new();
+        assert_eq!(a.partial_cmp(&b), Some(Ordering::Equal));
+
+        // b is easier in one slot: a dominates b
+        b.hops[STATES - 1] = 3;
+        assert_eq!(a.partial_cmp(&b), Some(Ordering::Greater));
+        assert_eq!(b.partial_cmp(&a), Some(Ordering::Less));
+        assert!(a > b && b < a);
+
+        // b is also harder in slot 0: neither dominates
+        b.hops[0] = 1;
+        assert_eq!(a.partial_cmp(&b), None);
+        assert_eq!(b.partial_cmp(&a), None);
+    }
+
+    #[test]
+    /// Domination on real explorations. Waiting is always allowed, so an exploration
+    /// dominates its successor, and `next` preserves domination.
+    fn test_partial_cmp_next() {
+        let (star, path) = (star(), path());
+        let a = Exploration::new();
+        let b = a.next(&path);
+        assert!(a > b);
+        assert!(b > b.next(&star));
+        assert!(a.next(&star) >= b.next(&star));
+        assert!(a.next(&path) >= b.next(&path));
     }
 }

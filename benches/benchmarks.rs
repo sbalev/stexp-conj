@@ -3,16 +3,16 @@
 extern crate test;
 
 mod benches {
-    use stexp_conj::{exploration::*, tree::*, constants::*};
+    use stexp_conj::{constants::*, exploration::*, pool::Pool, tree::*};
     use test::Bencher;
 
     #[bench]
     fn bench_tree_generation(b: &mut Bencher) {
-        b.iter(|| Tree::all_trees())
+        b.iter(Tree::all_trees)
     }
 
     #[bench]
-    fn bench_star_exploration(b: & mut Bencher) {
+    fn bench_star_exploration(b: &mut Bencher) {
         let star = Tree {
             edges: std::array::from_fn(|i| (0, (i + 1) as u8)),
             id: 0,
@@ -26,7 +26,7 @@ mod benches {
     }
 
     #[bench]
-    fn bench_path_exploration(b: & mut Bencher) {
+    fn bench_path_exploration(b: &mut Bencher) {
         let path = Tree {
             edges: std::array::from_fn(|i| (i as u8, (i + 1) as u8)),
             id: 0,
@@ -37,5 +37,12 @@ mod benches {
                 exp = exp.next(&path)
             }
         });
+    }
+
+    #[bench]
+    fn bench_pool(b: &mut Bencher) {
+        let trees = Tree::all_trees();
+        let pool = Pool::new().next(&trees);
+        b.iter(|| pool.next(&trees));
     }
 }
