@@ -1,5 +1,6 @@
 use crate::{
-    constants::{INF, N}, tree::Tree,
+    constants::{INF, N},
+    tree::Tree,
 };
 
 pub const S: usize = 1 << (N - 2); // Number of subsets of `0..N` with two fixed elements
@@ -92,6 +93,7 @@ impl Default for Exploration {
 
 /// Deletes the bit at the specified position. Keeps the less significant bits
 /// and shifts the more significant bits one position to the right
+#[inline]
 fn delete_bit(number: usize, position: usize) -> usize {
     let low_mask = (1usize << position) - 1;
     (number & low_mask) | ((number >> 1) & !low_mask)
@@ -99,6 +101,7 @@ fn delete_bit(number: usize, position: usize) -> usize {
 
 /// Inserts 1 at the specified position. Keeps the less significant bits
 /// and shifts the most significant bits one position to the left
+#[inline]
 fn insert_one(number: usize, position: usize) -> usize {
     let low_mask = (1usize << position) - 1;
     (number & low_mask) | (1 << position) | ((number << 1) & !low_mask)
