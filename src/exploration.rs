@@ -8,7 +8,7 @@ use crate::{
 pub const S: usize = 1 << (N - 2); // Number of subsets of `0..N` with two fixed elements
 const STATES: usize = (N + 1) << (N - 2); // number of elements in DP table (N + 1) * 2^(N - 2)
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub struct Exploration {
     /// Minimal number of hops for each configuration (current vertex, visited set).
     /// The visited set is a mask over vertices 1..N-1, vertex v coded by bit v-1
@@ -131,6 +131,15 @@ fn insert_one(number: usize, position: usize) -> usize {
     let low_mask = (1usize << position) - 1;
     (number & low_mask) | (1 << position) | ((number << 1) & !low_mask)
 }
+
+/*
+/// swaps two bits at the specified positions
+#[inline]
+fn swap_bits(number: usize, pos1: usize, pos2: usize) -> usize {
+    let xor = ((number >> pos1) & 1) ^ (number >> pos2 & 1);
+    number ^ ((xor << pos1) | (xor << pos2))
+}
+*/
 
 #[cfg(test)]
 mod tests {

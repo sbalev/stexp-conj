@@ -1,13 +1,73 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, collections::HashSet};
 
 use crate::{constants::N, exploration::Exploration, tree::Tree};
 
-pub struct Pool {
-    pub steps: u8,
-    pub explorations: Vec<Exploration>,
+/// The storage of a pool: decides which explorations are kept when a new one is inserted.
+pub trait ExplorationSet: Default {
+    fn insert(&mut self, exp: Exploration);
+    fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    fn iter(&self) -> impl Iterator<Item = &Exploration>;
 }
 
-impl Pool {
+/// Keeps only non-dominated explorations (Pareto front).
+impl ExplorationSet for Vec<Exploration> {
+    fn insert(&mut self, exp: Exploration) {
+        let mut i = 0;
+        while i < self.len() {
+            match self[i].partial_cmp(&exp) {
+                // self[i] >= exp, don't add exp to the pool and stop here
+                Some(Ordering::Greater | Ordering::Equal) => return,
+                // exp > self[i], remove self[i] from the pool
+                Some(Ordering::Less) => {
+                    self.swap_remove(i);
+                }
+                // No domination, do nothing
+                None => i += 1,
+            }
+        }
+        self.push(exp);
+    }
+
+    fn len(&self) -> usize {
+        <[Exploration]>::len(self)
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Exploration> {
+        <[Exploration]>::iter(self)
+    }
+}
+
+/// Removes only identical explorations, no domination check.
+impl ExplorationSet for HashSet<Exploration> {
+    fn insert(&mut self, exp: Exploration) {
+        HashSet::insert(self, exp);
+    }
+
+    fn len(&self) -> usize {
+        HashSet::len(self)
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &Exploration> {
+        HashSet::iter(self)
+    }
+}
+
+pub struct GenericPool<S: ExplorationSet> {
+    pub steps: u8,
+    pub explorations: S,
+}
+
+/// Pool keeping only the non-dominated partial explorations.
+pub type Pool = GenericPool<Vec<Exploration>>;
+
+/// A simple pool that stores the explorations in a hashset and checks only for identity, not for domination.
+/// Implemented for comparison with the domination.
+pub type HashPool = GenericPool<HashSet<Exploration>>;
+
+impl<S: ExplorationSet> GenericPool<S> {
     /// Creates the pool containing only the non-dominated partial explorations after 2 steps
     pub fn new() -> Self {
         // At the first step we only use the edge (0, 1)
@@ -22,52 +82,47 @@ impl Pool {
             [(0, 2), (1, 2)],
             [(0, 2), (1, 3)],
         ];
-        Self {
+        let mut pool = Self {
             steps: 2,
-            explorations: snapshots
-                .iter()
-                .map(|e| exp.clone().next_with_edges(e))
-                .collect(),
+            explorations: S::default(),
+        };
+        for e in &snapshots {
+            pool.explorations.insert(exp.clone().next_with_edges(e));
         }
+        pool
     }
 
-    fn add(&mut self, exp: &Exploration) {
+    fn add(&mut self, exp: Exploration) {
         if self.steps >= (N - 1) as u8 && exp.hops_to_explore() <= (2 * N - 3) as u8 {
             // exploration finished with no more than 2N - 3 hops
             return;
         }
-
-        let mut i = 0;
-        while i < self.explorations.len() {
-            match self.explorations[i].partial_cmp(exp) {
-                // explorations[i] >= exp, don't add exp to the pool and stop here
-                Some(Ordering::Greater | Ordering::Equal) => return,
-                // exp > explorations[i], remove explorations[i] from the pool
-                Some(Ordering::Less) => {
-                    self.explorations.swap_remove(i);
-                }
-                // No domination, do nothing
-                None => i += 1,
-            }
-        }
-        self.explorations.push(exp.clone());
+        self.explorations.insert(exp);
     }
 
     pub fn next(&self, trees: &[Tree]) -> Self {
         let mut next = Self {
             steps: self.steps + 1,
-            explorations: Vec::new(),
+            explorations: S::default(),
         };
-        for exp in &self.explorations {
+        println!("*** Building the pool for step {} ***", next.steps);
+        for (i, exp) in self.explorations.iter().enumerate() {
+            if i % 1000 == 0 {
+                println!(
+                    "{i}/{} {}",
+                    self.explorations.len(),
+                    next.explorations.len()
+                );
+            }
             for tree in trees {
-                next.add(&exp.next(tree));
+                next.add(exp.next(tree));
             }
         }
         next
     }
 }
 
-impl Default for Pool {
+impl<S: ExplorationSet> Default for GenericPool<S> {
     fn default() -> Self {
         Self::new()
     }
